@@ -1,0 +1,13 @@
+onnx
+onnxruntime-gpu
+
+[all]
+matplotlib
+pycocotools
+opencv-python
+
+[dev]
+flake8
+isort
+black
+mypy

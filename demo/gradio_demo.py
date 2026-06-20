@@ -212,7 +212,8 @@ def get_examples():
 if __name__ == "__main__":
 
     backbone = "vit_l"
-    ckpt_p = "results/zim_vit_l_2092"
+    ckpt_p = "results/zim_vit_b_2043"
+    # ckpt_p = "results/zim_vit_l_2092"
 
     model = zim_model_registry[backbone](checkpoint=ckpt_p)
     if torch.cuda.is_available():
@@ -349,6 +350,6 @@ if __name__ == "__main__":
 
     demo.queue()
     demo.launch(
-        server_name="0.0.0.0",
+        server_name="127.0.0.1",
         server_port=11928,
     )
