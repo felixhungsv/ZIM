@@ -14,6 +14,25 @@
 ![Teaser](https://github.com/naver-ai/ZIM/releases/download/asset-v1/amg.gif)
 ![Teaser](https://github.com/naver-ai/ZIM/releases/download/asset-v1/teaser.png)
 
+## Reminder!!!
+Need to first download the data and arrange them in a folder `results` as below:
+```
+ZIM/
+├── results/
+│   ├── zim_vit_b_2043/ (the download link is below)
+│   │   ├── decoder.onnx
+│   │   └── encoder.onnx
+│   ├── zim_vit_l_2092/ (the download link is below)
+│   │   ├── decoder.onnx
+│   │   └── encoder.onnx
+│   └── sam_vit_b_01ec64.pth (download from [here](https://dl.fbaipublicfiles.com/segment_anything/sam_vit_b_01ec64.pth))
+└── ...
+```
+
+Then download the dependencies (I wrote a shell script for mac to initiate the environment using venv: `init_mac.sh`).
+
+Lastly, run `[demo/gradio_matting_ui.py](demo/gradio_matting_ui.py)` and open [http://127.0.0.1:7860](http://127.0.0.1:7860).
+
 ## Introduction
 
 The recent segmentation foundation model, Segment Anything Model (SAM), exhibits strong zero-shot segmentation capabilities, but it falls short in generating fine-grained precise masks. To address this limitation, we propose a novel zero-shot image matting model, called ZIM, with two key contributions: First, we develop a label converter that transforms segmentation labels into detailed matte labels, constructing the new SA1B-Matte dataset without costly manual annotations. Training SAM with this dataset enables it to generate precise matte masks while maintaining its zero-shot capability. Second, we design the zero-shot matting model equipped with a hierarchical pixel decoder to enhance mask representation, along with a prompt-aware masked attention mechanism to improve performance by enabling the model to focus on regions specified by visual prompts. We evaluate ZIM using the newly introduced MicroMat-3K test set, which contains high-quality micro-level matte labels. Experimental results show that ZIM outperforms existing methods in fine-grained mask generation and zero-shot generalization. Furthermore, we demonstrate the versatility of ZIM in various downstream tasks requiring precise masks, such as image inpainting and 3D NeRF. Our contributions provide a robust foundation for advancing zero-shot matting and its downstream applications across a wide range of computer vision tasks. 
