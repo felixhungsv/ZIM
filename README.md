@@ -14,8 +14,12 @@
 ![Teaser](https://github.com/naver-ai/ZIM/releases/download/asset-v1/amg.gif)
 ![Teaser](https://github.com/naver-ai/ZIM/releases/download/asset-v1/teaser.png)
 
-## Reminder!!!
-Need to first download the data and arrange them in a folder `results` as below:
+## Project Specification
+I adopted from the [github repository](https://github.com/naver-ai/ZIM.git) of the original paper.
+`[gradio_demo.py](demo/gradio_demo.py)` and `[gradio_demo_comparison.py](demo/gradio_demo_comparison.py)` are original works; `[gradio_matting_ui.py](demo/gradio_matting_ui.py)` is my work.
+
+
+Before running the codes, need to first download the data and arrange them in a folder `results` as below:
 ```
 ZIM/
 ├── results/
@@ -29,9 +33,9 @@ ZIM/
 └── ...
 ```
 
-Then download the dependencies (I wrote a shell script for mac to initiate the environment using venv: `init_mac.sh`).
+Then download the dependencies (I wrote a shell script for mac to initiate the environment using venv: `[init_mac.sh](init_mac.sh)`).
 
-Lastly, run `[demo/gradio_matting_ui.py](demo/gradio_matting_ui.py)` and open [http://127.0.0.1:7860](http://127.0.0.1:7860).
+Lastly, run `[gradio_matting_ui.py](demo/gradio_matting_ui.py)` and open [http://127.0.0.1:7860](http://127.0.0.1:7860).
 
 ## Introduction
 

@@ -68,7 +68,7 @@ def test_full_handler_workflow(monkeypatch):
     prompter = {"image": img, "points": [[48, 48, 1, 0, 0, 4]]}
 
     # 1 upload
-    session, *outs = ui.on_image_upload(prompter, session)
+    session, *_ = ui.on_image_upload(prompter, session, None, *tuning)
     assert ui.wrap(session).image is not None
 
     # 2 example
@@ -76,7 +76,7 @@ def test_full_handler_workflow(monkeypatch):
     assert isinstance(pv, dict)
 
     # 3 point click (state only)
-    session = ui.on_prompter_change({"image": img, "points": [[40, 40, 1, 0, 0, 4]]}, session)
+    session, _ = ui.on_prompter_change({"image": img, "points": [[40, 40, 1, 0, 0, 4]]}, session, None)
     assert isinstance(session, dict)
 
     # 4 run
@@ -84,7 +84,14 @@ def test_full_handler_workflow(monkeypatch):
     assert ui.wrap(session).raw_alpha is not None
     assert mask_key is None
 
-    # 4b multimask + select
+    # 4b scribble
+    layer = np.zeros((96, 96, 4), dtype=np.uint8)
+    layer[30:70, 30:70, 3] = 255
+    scribble = {"background": img, "layers": [layer], "composite": img}
+    session, mask_key, *outs = ui.on_run_scribble(scribble, session, mask_key, *tuning)
+    assert ui.wrap(session).raw_alpha is not None
+
+    # 4c multimask + select
     ui.wrap(session).prompts = {"point": [[48, 48, 1]]}
     session, mask_key, *outs = ui.on_run_multimask(session, None, *tuning)
     assert mask_key is not None
@@ -100,13 +107,13 @@ def test_full_handler_workflow(monkeypatch):
 
     # 5 tuning
     outs = ui.on_tuning_change(session, *tuning)
-    assert len(outs) == ui.NUM_IMAGE_OUTPUTS
+    assert len(outs) == ui.NUM_IMAGE_OUTPUTS + 1
 
     # 6 clear points
     session = ui.new_session()
     ui.wrap(session).image = img
     ui.wrap(session).d["last_prompter"] = prompter
-    session = ui.on_prompter_change({"image": img, "points": []}, session)
+    session, _ = ui.on_prompter_change({"image": img, "points": []}, session, None)
     assert ui.wrap(session).raw_alpha is None
 
     # 7 remove image

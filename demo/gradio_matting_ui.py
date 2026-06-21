@@ -1,9 +1,3 @@
-"""
-ZIM Matting Studio — interactive zero-shot image matting UI.
-
-Run from the ZIM project root:
-    python demo/gradio_matting_ui.py
-"""
 import copy
 import base64
 import json
@@ -42,8 +36,6 @@ os.makedirs(EXPORT_DIR, exist_ok=True)
 
 
 class ModelManager:
-    """Lazy-load ZIM and SAM predictors (only one ZIM model at a time)."""
-
     def __init__(self) -> None:
         self.zim_key: Optional[str] = None
         self.zim_predictor: Optional[ZimPredictor] = None

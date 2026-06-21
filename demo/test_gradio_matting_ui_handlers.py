@@ -17,10 +17,14 @@ from demo.gradio_matting_ui import (
     on_prepare_exports,
     on_image_upload,
     on_prompter_change,
+    on_prompter_clear_panel,
     on_remove_image,
     on_run_multimask,
     on_run_point,
+    on_run_scribble,
     on_select_mask,
+    prompts_to_arrays,
+    NUM_PREVIEW_NOOPS,
     _store_mask_stack,
     pack_example_outputs,
     pack_image_outputs,
@@ -46,10 +50,26 @@ def _assert_image_outputs(outputs, label):
 
 def test_on_image_upload():
     img = np.zeros((64, 64, 3), dtype=np.uint8)
-    result = on_image_upload({"image": img, "points": []}, new_session())
-    assert len(result) == 1 + NUM_IMAGE_OUTPUTS
+    result = on_image_upload({"image": img, "points": []}, new_session(), None, *DEFAULT_TUNING)
+    assert len(result) == NUM_PANEL_OUTPUTS
     assert wrap(result[0]).image is not None
-    _assert_image_outputs(result[1:], "on_image_upload")
+    _assert_image_outputs(result[2:-1], "on_image_upload")
+
+
+def test_on_image_clear_then_reupload():
+    img_a = np.zeros((64, 64, 3), dtype=np.uint8)
+    img_b = np.ones((80, 80, 3), dtype=np.uint8) * 200
+    session = new_session()
+    session, *_ = on_image_upload({"image": img_a, "points": []}, session, None, *DEFAULT_TUNING)
+    s = wrap(session)
+    s.raw_alpha = np.ones((64, 64), dtype=np.float32)
+    session, mask_key = on_prompter_change({"image": None, "points": []}, session, None)
+    assert wrap(session).image is None
+    assert wrap(session).raw_alpha is None
+    assert mask_key is None
+    session, mask_key, *outs = on_image_upload({"image": img_b, "points": []}, session, None, *DEFAULT_TUNING)
+    assert wrap(session).image.shape == (80, 80, 3)
+    assert wrap(session).raw_alpha is None
 
 
 def test_pack_example_outputs():
@@ -68,8 +88,13 @@ def test_on_prompter_change_point_click_returns_session_only():
     session = new_session()
     wrap(session).image = img
     prompter_val = {"image": img, "points": [[10, 10, 1, 0, 0, 4]]}
-    session_out = on_prompter_change(prompter_val, session)
+    session_out, mask_key = on_prompter_change(prompter_val, session, None)
     assert isinstance(session_out, dict)
+    assert mask_key is None
+    assert "point" in wrap(session_out).prompts
+    panel = on_prompter_clear_panel(session_out, mask_key, *DEFAULT_TUNING)
+    assert len(panel) == NUM_IMAGE_OUTPUTS + 1
+    assert all(isinstance(x, dict) and x.get("__type__") == "update" for x in panel)
 
 
 def test_on_clear_prompts():
@@ -156,6 +181,56 @@ def test_on_run_point_with_mock():
     _assert_image_outputs(result[2:-1], "on_run_point")
 
 
+def test_prompts_to_arrays_scribble():
+    coords = np.array([[10, 20], [30, 40]], dtype=np.int32)
+    pc, pl, box = prompts_to_arrays({"scribble": coords})
+    assert box is None
+    assert pc.shape == (2, 2)
+    assert pl.shape == (2,)
+    assert pc[0, 0] == 20 and pc[0, 1] == 10
+
+
+def test_on_run_scribble_with_mock():
+    img = np.zeros((64, 64, 3), dtype=np.uint8)
+    layer = np.zeros((64, 64, 4), dtype=np.uint8)
+    layer[20:40, 20:40, 3] = 255
+    scribble = {"background": img, "layers": [layer], "composite": img}
+    session = new_session()
+
+    def fake_predict(session_data, multimask=False):
+        s = wrap(session_data)
+        pc, pl, box = prompts_to_arrays(s.prompts)
+        assert pc is not None and pc.shape[0] > 0
+        assert box is None
+        s.raw_alpha = np.ones((64, 64), dtype=np.float32) * 0.75
+        s.all_masks = np.stack([s.raw_alpha])
+        s.iou_scores = np.array([0.88])
+
+    import demo.gradio_matting_ui as ui
+
+    with patch.object(ui, "run_zim_predict", fake_predict):
+        result = on_run_scribble(scribble, session, None, *DEFAULT_TUNING)
+    assert len(result) == NUM_PANEL_OUTPUTS
+    assert wrap(result[0]).raw_alpha is not None
+
+
+def test_on_run_scribble_empty_strokes():
+    img = np.zeros((64, 64, 3), dtype=np.uint8)
+    layer = np.zeros((64, 64, 4), dtype=np.uint8)
+    scribble = {"background": img, "layers": [layer], "composite": img}
+    result = on_run_scribble(scribble, new_session(), None, *DEFAULT_TUNING)
+    assert wrap(result[0]).raw_alpha is None
+
+
+def test_on_run_point_without_prompts():
+    img = np.zeros((64, 64, 3), dtype=np.uint8)
+    session = new_session()
+    prompter = {"image": img, "points": []}
+    result = on_run_point(prompter, session, None, *DEFAULT_TUNING)
+    assert len(result) == NUM_PANEL_OUTPUTS
+    assert wrap(result[0]).raw_alpha is None
+
+
 def test_on_select_mask_tuple_index():
     img = np.zeros((64, 64, 3), dtype=np.uint8)
     session = new_session()
@@ -235,6 +310,7 @@ def test_build_ui_wiring():
 
 if __name__ == "__main__":
     test_on_image_upload()
+    test_on_image_clear_then_reupload()
     test_pack_example_outputs()
     test_on_prompter_change_point_click_returns_session_only()
     test_on_clear_prompts()
@@ -243,6 +319,10 @@ if __name__ == "__main__":
     test_build_outputs_crop_to_object()
     test_on_prepare_exports_writes_files()
     test_on_run_point_with_mock()
+    test_prompts_to_arrays_scribble()
+    test_on_run_scribble_with_mock()
+    test_on_run_scribble_empty_strokes()
+    test_on_run_point_without_prompts()
     test_on_select_mask_tuple_index()
     test_on_select_mask_uses_cache_when_session_masks_missing()
     test_on_run_multimask_with_mock()
